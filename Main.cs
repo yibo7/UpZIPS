@@ -22,11 +22,14 @@ namespace U
         public Main()
         {
             InitializeComponent();
+            XS.Core.Log.InfoLog.ErrorFormat("软件打开:{0}",DateTime.Now);
+            
         }
 
 
         private void btnSelPath_Click(object sender, EventArgs e)
         {
+            
             //DeCompressRar(txtPath.Text, Path.GetDirectoryName(txtPath.Text));
             //return;
             FolderBrowserDialog fld = new FolderBrowserDialog();
@@ -149,9 +152,8 @@ namespace U
                 else if(sFilePath.ToLower().EndsWith(".zip"))
                 {
                     ZipCount++;
-                    //DeCompressRar(sFilePath, ToPath);
-                    System.IO.Compression.ZipFile.ExtractToDirectory(sFilePath, ToPath);
-                    //ZipHelper.UnZipFile(sFilePath, ToPath);
+                    //System.IO.Compression.ZipFile.ExtractToDirectory(sFilePath, ToPath);
+                    ZipHelper.UnZipFile(sFilePath, ToPath);
                 }
                     
                 
@@ -164,8 +166,7 @@ namespace U
 
                 string sCopyFileUrl = GetString.GetNewNameByDate(sFilePath);
                 sCopyFileUrl = string.Concat("/errfile/", sCopyFileUrl);
-                string sCopyFilePath = string.Concat(Application.StartupPath, "\\",
-                                sCopyFileUrl.Replace("/", "\\"));
+                string sCopyFilePath = string.Concat(Application.StartupPath, "\\",sCopyFileUrl.Replace("/", "\\"));
                 FObject.ExistsDirectory(sCopyFilePath);
                 XS.Core.FSO.FObject.CopyFile(sFilePath, sCopyFilePath);
             }
@@ -201,9 +202,18 @@ namespace U
     
 
     private void btnStartUpZip_Click(object sender, EventArgs e)
-        { 
-            
-            dlgDelegateAddItem = AddTagToList;
+        {
+            if (string.IsNullOrEmpty(ExistsWinRar()))
+            {
+                DialogResult dr = MessageBox.Show("还没有安装WinRAR,将无法解压rar文件,是否还要进行？", "提示", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+                if (dr != DialogResult.OK)
+                {
+                    return;
+                }  
+            }
+        ZipCount = 0;
+        ZipErrCount = 0;
+        dlgDelegateAddItem = AddTagToList;
             dlgDelegateShowInfo = ShowScanInfo;
             //dlgDelegateChuangeBtnState = UpToDataBaseEnabled;
 
@@ -252,8 +262,9 @@ namespace U
             if (registryKey != null)
             {
                 result = registryKey.GetValue("").ToString();
+                registryKey.Close();
             }
-            registryKey.Close();
+            
 
             return result;
         }
