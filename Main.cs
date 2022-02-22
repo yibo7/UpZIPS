@@ -12,6 +12,8 @@ using System.Threading.Tasks;
 using System.Windows.Forms;
 using Microsoft.Win32;
 using UpZips;
+using XS.Core.FSO;
+using XS.Core.Strings;
 
 namespace U
 {
@@ -87,25 +89,22 @@ namespace U
                         }
                         else
                         {
-                            if (iZipType == 0)
-                            {
-                                if (file.ToLower().EndsWith(".zip"))
-                                {
-                                    lbStateInfo.Invoke(dlgDelegateAddItem, file);
-                                }
-                            }
-                            else if (iZipType == 1)
-                            {
-                                if (file.ToLower().EndsWith(".rar"))
-                                {
-                                    lbStateInfo.Invoke(dlgDelegateAddItem, file);
-                                }
-                            }
-
-                            //foreach (string file_extend in aScanFileType)
+                            //if (iZipType == 0)
                             //{
-
+                            //    if (file.ToLower().EndsWith(".zip"))
+                            //    {
+                            //        lbStateInfo.Invoke(dlgDelegateAddItem, file);
+                            //    }
                             //}
+                            //else if (iZipType == 1)
+                            //{
+                            //    if (file.ToLower().EndsWith(".rar"))
+                            //    {
+                            //        lbStateInfo.Invoke(dlgDelegateAddItem, file);
+                            //    }
+                            //}
+
+                            lbStateInfo.Invoke(dlgDelegateAddItem, file);
 
                             iReadCount++;
                             lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("文件读入:{0}/{1}", ZipCount, iReadCount));
@@ -127,28 +126,48 @@ namespace U
 
         private int ZipCount = 0;
         private int ZipErrCount = 0;
-        private int iZipType = 0;//0zip,1rar
+        //private int iZipType = 0;//0zip,1rar
         private void AddTagToList(string sFilePath)
         {
-            ZipCount++;
+            
             try
             {
                 string ToPath = Path.GetDirectoryName(sFilePath);
-                if (iZipType == 0)
+                //if (iZipType == 0)
+                //{
+                //    XS.Core.FSO.FObject.UnZipFile(sFilePath, ToPath);
+                //}
+                //else
+                //{
+                //    DeCompressRar(sFilePath, ToPath);
+                //}
+                if (sFilePath.ToLower().EndsWith(".rar"))
                 {
-                    XS.Core.FSO.FObject.UnZipFile(sFilePath, ToPath);
-                }
-                else
-                {
+                    ZipCount++;
                     DeCompressRar(sFilePath, ToPath);
                 }
+                else if(sFilePath.ToLower().EndsWith(".zip"))
+                {
+                    ZipCount++;
+                    //DeCompressRar(sFilePath, ToPath);
+                    System.IO.Compression.ZipFile.ExtractToDirectory(sFilePath, ToPath);
+                    //ZipHelper.UnZipFile(sFilePath, ToPath);
+                }
+                    
                 
+
             }
             catch (Exception ex)
             {
                 ZipErrCount++;
                 XS.Core.Log.ErrorLog.ErrorFormat("对文件:{0}的操作发生错误:{1}", sFilePath, ex.Message);
-                
+
+                string sCopyFileUrl = GetString.GetNewNameByDate(sFilePath);
+                sCopyFileUrl = string.Concat("/errfile/", sCopyFileUrl);
+                string sCopyFilePath = string.Concat(Application.StartupPath, "\\",
+                                sCopyFileUrl.Replace("/", "\\"));
+                FObject.ExistsDirectory(sCopyFilePath);
+                XS.Core.FSO.FObject.CopyFile(sFilePath, sCopyFilePath);
             }
            
 
@@ -168,7 +187,7 @@ namespace U
             String commandOptions = string.Format(@"x ""{0}"" ""{1}"" -y", rarFileName, saveDir);
             
             ProcessStartInfo processStartInfo = new ProcessStartInfo();
-            processStartInfo.FileName = System.IO.Path.Combine(winrarDir, "rar.exe");
+            processStartInfo.FileName = System.IO.Path.Combine(winrarDir, "rar.exe"); //
             processStartInfo.Arguments = commandOptions;
             processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
 
@@ -204,26 +223,26 @@ namespace U
             st.Start();
         }
 
-        private void rabZip_CheckedChanged(object sender, EventArgs e)
-        {
-            iZipType = rabZip.Checked ? 0 : 1;
+        //private void rabZip_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    iZipType = rabZip.Checked ? 0 : 1;
 
-        }
+        //}
 
-        private void rabRar_CheckedChanged(object sender, EventArgs e)
-        {
-            if (!string.IsNullOrEmpty(ExistsWinRar()))
-            {
-                iZipType = rabRar.Checked ? 1 : 0;
-            }
-            else
-            {
-                rabRar.Checked = false;
-                rabZip.Checked = true;
+        //private void rabRar_CheckedChanged(object sender, EventArgs e)
+        //{
+        //    if (!string.IsNullOrEmpty(ExistsWinRar()))
+        //    {
+        //        iZipType = rabRar.Checked ? 1 : 0;
+        //    }
+        //    else
+        //    {
+        //        rabRar.Checked = false;
+        //        rabZip.Checked = true;
 
-                MessageBox.Show("还没有安装WinRAR");
-            }
-        }
+        //        MessageBox.Show("还没有安装WinRAR");
+        //    }
+        //}
         public static string ExistsWinRar()
         {
             string result = string.Empty;
