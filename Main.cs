@@ -110,7 +110,7 @@ namespace U
                             lbStateInfo.Invoke(dlgDelegateAddItem, file);
 
                             iReadCount++;
-                            lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("文件读入:{0}/{1}", ZipCount, iReadCount));
+                            lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("文件读入:打包文件：{0}/所有文件：{1}", ZipCount, iReadCount));
 
                         }
                     }
@@ -129,32 +129,36 @@ namespace U
 
         private int ZipCount = 0;
         private int ZipErrCount = 0;
-        //private int iZipType = 0;//0zip,1rar
+        private bool IsDelFile = false;//0zip,1rar
         private void AddTagToList(string sFilePath)
         {
             
             try
             {
                 string ToPath = Path.GetDirectoryName(sFilePath);
-                //if (iZipType == 0)
-                //{
-                //    XS.Core.FSO.FObject.UnZipFile(sFilePath, ToPath);
-                //}
-                //else
-                //{
-                //    DeCompressRar(sFilePath, ToPath);
-                //}
-                if (sFilePath.ToLower().EndsWith(".rar"))
+                if (!IsDelFile)
                 {
-                    ZipCount++;
-                    DeCompressRar(sFilePath, ToPath);
+                    if (sFilePath.ToLower().EndsWith(".rar"))
+                    {
+                        ZipCount++;
+                        DeCompressRar(sFilePath, ToPath);
+                    }
+                    else if (sFilePath.ToLower().EndsWith(".zip"))
+                    {
+                        ZipCount++;
+                        //System.IO.Compression.ZipFile.ExtractToDirectory(sFilePath, ToPath);
+                        ZipHelper.UnZipFile(sFilePath, ToPath);
+                    }
                 }
-                else if(sFilePath.ToLower().EndsWith(".zip"))
-                {
-                    ZipCount++;
-                    //System.IO.Compression.ZipFile.ExtractToDirectory(sFilePath, ToPath);
-                    ZipHelper.UnZipFile(sFilePath, ToPath);
+                else {
+                    if (sFilePath.ToLower().EndsWith(".rar")|| sFilePath.ToLower().EndsWith(".zip"))
+                    {
+                        ZipCount++;
+                        FObject.Delete(sFilePath, FsoMethod.File);
+                    }
+                        
                 }
+                
                     
                 
 
@@ -211,26 +215,9 @@ namespace U
                     return;
                 }  
             }
-        ZipCount = 0;
-        ZipErrCount = 0;
-        dlgDelegateAddItem = AddTagToList;
-            dlgDelegateShowInfo = ShowScanInfo;
-            //dlgDelegateChuangeBtnState = UpToDataBaseEnabled;
-
-            string sPath = txtPath.Text.Trim();
-
-            Thread st = new Thread(() =>
-            {
-                lbStateInfo.Invoke(dlgDelegateShowInfo, "文件读入中...");
-
-                ScanFiles(sPath);
-                //int icount = lstData.Count; // lvDataList.Items.Count;
-                lbStateInfo.Invoke(dlgDelegateShowInfo,
-                    string.Format("读入完毕,总共:{0}，Zip包:{1}，解压出错:{2}", iReadCount, ZipCount, ZipErrCount));
-                //if (icount > 0)
-                //    this.Invoke(dlgDelegateChuangeBtnState);
-            });
-            st.Start();
+            IsDelFile = false;
+            FileHander();
+        
         }
 
         //private void rabZip_CheckedChanged(object sender, EventArgs e)
@@ -253,6 +240,7 @@ namespace U
         //        MessageBox.Show("还没有安装WinRAR");
         //    }
         //}
+
         public static string ExistsWinRar()
         {
             string result = string.Empty;
@@ -267,6 +255,42 @@ namespace U
             
 
             return result;
+        }
+
+        private void btn_del_all_ziprar_Click(object sender, EventArgs e)
+        {
+            DialogResult dr = MessageBox.Show("此操作将删除当前目录及子目录的zip文件与rar文件,是否还要进行？", "提示", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (dr != DialogResult.OK)
+            {
+                return;
+            }
+            IsDelFile = true;
+            FileHander();
+
+        }
+
+        private void FileHander()
+        {
+            ZipCount = 0;
+            ZipErrCount = 0;
+            dlgDelegateAddItem = AddTagToList;
+            dlgDelegateShowInfo = ShowScanInfo;
+            //dlgDelegateChuangeBtnState = UpToDataBaseEnabled;
+
+            string sPath = txtPath.Text.Trim();
+
+            Thread st = new Thread(() =>
+            {
+                lbStateInfo.Invoke(dlgDelegateShowInfo, "文件读入中...");
+
+                ScanFiles(sPath);
+                //int icount = lstData.Count; // lvDataList.Items.Count;
+                lbStateInfo.Invoke(dlgDelegateShowInfo,
+                    string.Format("读入完毕,总共:{0}，Zip包:{1}，出错:{2}", iReadCount, ZipCount, ZipErrCount));
+                //if (icount > 0)
+                //    this.Invoke(dlgDelegateChuangeBtnState);
+            });
+            st.Start();
         }
     }
 }

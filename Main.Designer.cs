@@ -33,6 +33,7 @@
             this.btnStartUpZip = new System.Windows.Forms.Button();
             this.lbStateInfo = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
+            this.btn_del_all_ziprar = new System.Windows.Forms.Button();
             this.SuspendLayout();
             // 
             // btnSelPath
@@ -80,11 +81,22 @@
             this.label1.TabIndex = 4;
             this.label1.Text = "注:解压rar需要安装WinRar";
             // 
+            // btn_del_all_ziprar
+            // 
+            this.btn_del_all_ziprar.Location = new System.Drawing.Point(295, 62);
+            this.btn_del_all_ziprar.Name = "btn_del_all_ziprar";
+            this.btn_del_all_ziprar.Size = new System.Drawing.Size(88, 37);
+            this.btn_del_all_ziprar.TabIndex = 5;
+            this.btn_del_all_ziprar.Text = "删除打包文件";
+            this.btn_del_all_ziprar.UseVisualStyleBackColor = true;
+            this.btn_del_all_ziprar.Click += new System.EventHandler(this.btn_del_all_ziprar_Click);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(489, 157);
+            this.Controls.Add(this.btn_del_all_ziprar);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lbStateInfo);
             this.Controls.Add(this.btnStartUpZip);
@@ -104,6 +116,7 @@
         private System.Windows.Forms.Button btnStartUpZip;
         private System.Windows.Forms.Label lbStateInfo;
         private System.Windows.Forms.Label label1;
+        private System.Windows.Forms.Button btn_del_all_ziprar;
     }
 }
 
