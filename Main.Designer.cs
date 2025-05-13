@@ -34,6 +34,14 @@
             this.lbStateInfo = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.btn_del_all_ziprar = new System.Windows.Forms.Button();
+            this.groupBox1 = new System.Windows.Forms.GroupBox();
+            this.groupBox2 = new System.Windows.Forms.GroupBox();
+            this.label2 = new System.Windows.Forms.Label();
+            this.txtHzs = new System.Windows.Forms.TextBox();
+            this.btnStartFind = new System.Windows.Forms.Button();
+            this.btnDelSames = new System.Windows.Forms.Button();
+            this.groupBox1.SuspendLayout();
+            this.groupBox2.SuspendLayout();
             this.SuspendLayout();
             // 
             // btnSelPath
@@ -55,7 +63,7 @@
             // 
             // btnStartUpZip
             // 
-            this.btnStartUpZip.Location = new System.Drawing.Point(187, 62);
+            this.btnStartUpZip.Location = new System.Drawing.Point(36, 29);
             this.btnStartUpZip.Name = "btnStartUpZip";
             this.btnStartUpZip.Size = new System.Drawing.Size(88, 37);
             this.btnStartUpZip.TabIndex = 2;
@@ -66,7 +74,7 @@
             // lbStateInfo
             // 
             this.lbStateInfo.AutoSize = true;
-            this.lbStateInfo.Location = new System.Drawing.Point(12, 120);
+            this.lbStateInfo.Location = new System.Drawing.Point(14, 193);
             this.lbStateInfo.Name = "lbStateInfo";
             this.lbStateInfo.Size = new System.Drawing.Size(29, 12);
             this.lbStateInfo.TabIndex = 3;
@@ -83,7 +91,7 @@
             // 
             // btn_del_all_ziprar
             // 
-            this.btn_del_all_ziprar.Location = new System.Drawing.Point(295, 62);
+            this.btn_del_all_ziprar.Location = new System.Drawing.Point(200, 29);
             this.btn_del_all_ziprar.Name = "btn_del_all_ziprar";
             this.btn_del_all_ziprar.Size = new System.Drawing.Size(88, 37);
             this.btn_del_all_ziprar.TabIndex = 5;
@@ -91,19 +99,83 @@
             this.btn_del_all_ziprar.UseVisualStyleBackColor = true;
             this.btn_del_all_ziprar.Click += new System.EventHandler(this.btn_del_all_ziprar_Click);
             // 
+            // groupBox1
+            // 
+            this.groupBox1.Controls.Add(this.btnDelSames);
+            this.groupBox1.Controls.Add(this.btnStartUpZip);
+            this.groupBox1.Controls.Add(this.btn_del_all_ziprar);
+            this.groupBox1.Location = new System.Drawing.Point(16, 87);
+            this.groupBox1.Name = "groupBox1";
+            this.groupBox1.Size = new System.Drawing.Size(514, 88);
+            this.groupBox1.TabIndex = 6;
+            this.groupBox1.TabStop = false;
+            this.groupBox1.Text = "常规操作";
+            this.groupBox1.Enter += new System.EventHandler(this.groupBox1_Enter);
+            // 
+            // groupBox2
+            // 
+            this.groupBox2.Controls.Add(this.label2);
+            this.groupBox2.Controls.Add(this.txtHzs);
+            this.groupBox2.Controls.Add(this.btnStartFind);
+            this.groupBox2.Location = new System.Drawing.Point(16, 229);
+            this.groupBox2.Name = "groupBox2";
+            this.groupBox2.Size = new System.Drawing.Size(514, 76);
+            this.groupBox2.TabIndex = 7;
+            this.groupBox2.TabStop = false;
+            this.groupBox2.Text = "提取指定文件(文件存放在当前目录的output下)";
+            // 
+            // label2
+            // 
+            this.label2.AutoSize = true;
+            this.label2.Location = new System.Drawing.Point(6, 33);
+            this.label2.Name = "label2";
+            this.label2.Size = new System.Drawing.Size(65, 12);
+            this.label2.TabIndex = 8;
+            this.label2.Text = "文件的后缀";
+            // 
+            // txtHzs
+            // 
+            this.txtHzs.Location = new System.Drawing.Point(77, 30);
+            this.txtHzs.Name = "txtHzs";
+            this.txtHzs.Size = new System.Drawing.Size(324, 21);
+            this.txtHzs.TabIndex = 3;
+            // 
+            // btnStartFind
+            // 
+            this.btnStartFind.Location = new System.Drawing.Point(407, 25);
+            this.btnStartFind.Name = "btnStartFind";
+            this.btnStartFind.Size = new System.Drawing.Size(88, 28);
+            this.btnStartFind.TabIndex = 2;
+            this.btnStartFind.Text = "开始";
+            this.btnStartFind.UseVisualStyleBackColor = true;
+            this.btnStartFind.Click += new System.EventHandler(this.btnStartFind_Click);
+            // 
+            // btnDelSames
+            // 
+            this.btnDelSames.Location = new System.Drawing.Point(373, 29);
+            this.btnDelSames.Name = "btnDelSames";
+            this.btnDelSames.Size = new System.Drawing.Size(88, 37);
+            this.btnDelSames.TabIndex = 6;
+            this.btnDelSames.Text = "删除重复文件";
+            this.btnDelSames.UseVisualStyleBackColor = true;
+            this.btnDelSames.Click += new System.EventHandler(this.btnDelSames_Click);
+            // 
             // Main
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(489, 157);
-            this.Controls.Add(this.btn_del_all_ziprar);
+            this.ClientSize = new System.Drawing.Size(542, 323);
+            this.Controls.Add(this.groupBox2);
+            this.Controls.Add(this.groupBox1);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.lbStateInfo);
-            this.Controls.Add(this.btnStartUpZip);
             this.Controls.Add(this.txtPath);
             this.Controls.Add(this.btnSelPath);
             this.Name = "Main";
             this.Text = "批量解压zip与rar";
+            this.groupBox1.ResumeLayout(false);
+            this.groupBox2.ResumeLayout(false);
+            this.groupBox2.PerformLayout();
             this.ResumeLayout(false);
             this.PerformLayout();
 
@@ -117,6 +189,12 @@
         private System.Windows.Forms.Label lbStateInfo;
         private System.Windows.Forms.Label label1;
         private System.Windows.Forms.Button btn_del_all_ziprar;
+        private System.Windows.Forms.GroupBox groupBox1;
+        private System.Windows.Forms.GroupBox groupBox2;
+        private System.Windows.Forms.Button btnStartFind;
+        private System.Windows.Forms.TextBox txtHzs;
+        private System.Windows.Forms.Label label2;
+        private System.Windows.Forms.Button btnDelSames;
     }
 }
 

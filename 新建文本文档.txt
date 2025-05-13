@@ -1,0 +1,5 @@
+.gtp,.gp3,.gp4,.gp5,.gpx,.gp7,.gp
+
+.txt
+
+.ove

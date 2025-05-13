@@ -14,6 +14,8 @@ using Microsoft.Win32;
 using UpZips;
 using XS.Core.FSO;
 using XS.Core.Strings;
+using static System.Windows.Forms.AxHost;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement.ProgressBar;
 
 namespace U
 {
@@ -22,7 +24,8 @@ namespace U
         public Main()
         {
             InitializeComponent();
-            XS.Core.Log.InfoLog.ErrorFormat("软件打开:{0}",DateTime.Now);
+
+            txtHzs.Text = ".rar,.zip";
             
         }
 
@@ -66,51 +69,32 @@ namespace U
                 string[] filecollect = null;
                 try
                 {
-                    //lbStateInfo
-                    //this.Invoke(dlgShowScanInfo, string.Concat("正在计算列表:", filepath));
+                   
                     filecollect = Directory.GetFileSystemEntries(filepath);
-
-
+                     
                 }
                 catch (Exception ex)
                 {
                     XS.Core.Log.ErrorLog.ErrorFormat("在获取计算时发生错误:{0}", ex.ToString());
-                    //MessageBox.Show("出错了！" + ex.Message);
-                    //ex.ToString();
+                     
                 }
 
                 if (!Equals(filecollect, null))
                 {
                     foreach (string file in filecollect)
                     {
-
-                        //lbFindingInfo.Invoke(dlgShowScanInfo, file);
-
+                         
                         if (Directory.Exists(file))
                         {
                             ScanFiles(file);
                         }
                         else
-                        {
-                            //if (iZipType == 0)
-                            //{
-                            //    if (file.ToLower().EndsWith(".zip"))
-                            //    {
-                            //        lbStateInfo.Invoke(dlgDelegateAddItem, file);
-                            //    }
-                            //}
-                            //else if (iZipType == 1)
-                            //{
-                            //    if (file.ToLower().EndsWith(".rar"))
-                            //    {
-                            //        lbStateInfo.Invoke(dlgDelegateAddItem, file);
-                            //    }
-                            //}
-
+                        { 
+                            iReadCount++;
+                            lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("正在读入：{0}/{1}\n\t{2}", ZipCount, iReadCount, file));
                             lbStateInfo.Invoke(dlgDelegateAddItem, file);
 
-                            iReadCount++;
-                            lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("文件读入:打包文件：{0}/所有文件：{1}", ZipCount, iReadCount));
+                            
 
                         }
                     }
@@ -136,12 +120,19 @@ namespace U
             try
             {
                 string ToPath = Path.GetDirectoryName(sFilePath);
+                string fileName = Path.GetFileNameWithoutExtension(sFilePath);
+                ToPath = $"{ToPath}\\{fileName}\\";
                 if (!IsDelFile)
                 {
                     if (sFilePath.ToLower().EndsWith(".rar"))
                     {
                         ZipCount++;
-                        DeCompressRar(sFilePath, ToPath);
+                       string err = DeCompressRar(sFilePath, ToPath);
+                        if (!string.IsNullOrEmpty(err)) { 
+                            ZipErrCount++;
+                            lbStateInfo.Invoke(dlgDelegateShowInfo, $"出错了：{err}");
+                            XS.Core.Log.InfoLog.ErrorFormat(sFilePath);
+                        }
                     }
                     else if (sFilePath.ToLower().EndsWith(".zip"))
                     {
@@ -178,34 +169,135 @@ namespace U
 
         }
         /// <summary>
-        /// 将格式为rar的压缩文件解压到指定的目录
+        /// 解压 RAR 文件，支持异常处理（密码保护、缺失分卷等）
         /// </summary>
-        /// <param name="rarFileName">要解压rar文件的路径</param>
-        /// <param name="saveDir">解压后要保存到的目录</param>
-        public static void DeCompressRar(string rarFileName, string saveDir)
+        /// <param name="rarFileName">RAR 文件路径</param>
+        /// <param name="saveDir">解压到的文件夹</param>
+        /// <param name="timeoutMs">最大解压时间（毫秒），默认10分钟</param>
+        public static string DeCompressRar(string rarFileName, string saveDir, int timeoutMinutes = 5)
         {
-            string regKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe";
-            RegistryKey registryKey = Registry.LocalMachine.OpenSubKey(regKey);
-            string winrarPath = registryKey.GetValue("").ToString();
-            registryKey.Close();
-            string winrarDir = System.IO.Path.GetDirectoryName(winrarPath);
-            String commandOptions = string.Format(@"x ""{0}"" ""{1}"" -y", rarFileName, saveDir);
-            
-            ProcessStartInfo processStartInfo = new ProcessStartInfo();
-            processStartInfo.FileName = System.IO.Path.Combine(winrarDir, "rar.exe"); //
-            processStartInfo.Arguments = commandOptions;
-            processStartInfo.WindowStyle = ProcessWindowStyle.Hidden;
+            try
+            {
+                string regKey = @"SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\WinRAR.exe";
+                RegistryKey registryKey = Registry.LocalMachine.OpenSubKey(regKey);
+                if (registryKey == null)
+                    return "WinRAR 未安装或未在注册表中找到。";
 
-            Process process = new Process();
-            process.StartInfo = processStartInfo;
-            process.Start();
-            process.WaitForExit();
-            process.Close();
+                string winrarPath = registryKey.GetValue("")?.ToString();
+                registryKey.Close();
+
+                if (string.IsNullOrWhiteSpace(winrarPath) || !File.Exists(winrarPath))
+                    return "未找到 WinRAR 执行文件路径。";
+
+                string winrarDir = Path.GetDirectoryName(winrarPath);
+                string rarExePath = Path.Combine(winrarDir, "rar.exe");
+                if (!File.Exists(rarExePath))
+                    return "未找到 rar.exe，请确认 WinRAR 安装完整。";
+
+                string commandOptions = $@"x ""{rarFileName}"" ""{saveDir}"" -y";
+
+                ProcessStartInfo processStartInfo = new ProcessStartInfo
+                {
+                    FileName = rarExePath,
+                    Arguments = commandOptions,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    StandardOutputEncoding = Encoding.GetEncoding(936),
+                    StandardErrorEncoding = Encoding.GetEncoding(936)
+                };
+
+                using (Process process = new Process())
+                {
+                    StringBuilder outputBuilder = new StringBuilder();
+                    bool detectedError = false;
+                    string detectedErrorMessage = null;
+
+                    process.StartInfo = processStartInfo;
+
+                    process.OutputDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null) return;
+                        outputBuilder.AppendLine(e.Data);
+
+                        if (CheckForFatalMessage(e.Data, out var reason))
+                        {
+                            detectedError = true;
+                            detectedErrorMessage = reason;
+                            try { process.Kill(); } catch { }
+                        }
+                    };
+
+                    process.ErrorDataReceived += (sender, e) =>
+                    {
+                        if (e.Data == null) return;
+                        outputBuilder.AppendLine(e.Data);
+
+                        if (CheckForFatalMessage(e.Data, out var reason))
+                        {
+                            detectedError = true;
+                            detectedErrorMessage = reason;
+                            try { process.Kill(); } catch { }
+                        }
+
+                    };
+
+                    process.Start();
+                    process.BeginOutputReadLine();
+                    process.BeginErrorReadLine();
+
+                    int timeoutMs = timeoutMinutes * 60 * 1000;
+                    if (!process.WaitForExit(timeoutMs))
+                    {
+                        try { process.Kill(); } catch { }
+                        return "解压超时，可能卡在输入密码或缺少分卷。";
+                    }
+
+                    if (detectedError)
+                        return "解压失败：" + detectedErrorMessage;
+
+                    if (process.ExitCode != 0)
+                        return $"解压失败，WinRAR 退出码：{process.ExitCode}";
+                }
+
+                return string.Empty; // 没有错误
+            }
+            catch (Exception ex)
+            {
+                return "解压异常：" + ex.Message;
+            }
         }
-         
-    
 
-    private void btnStartUpZip_Click(object sender, EventArgs e)
+        private static bool CheckForFatalMessage(string line, out string reason)
+        {
+            //line = line.ToLowerInvariant();
+
+            if (line.Contains("密码") || line.Contains("password"))
+            {
+                reason = "压缩包需要密码";
+                return true;
+            }
+
+            if (line.Contains("分卷") || line.Contains("cannot open next volume"))
+            {
+                reason = "缺少分卷文件";
+                return true;
+            }
+
+            if (line.Contains("错误") || line.Contains("error"))
+            {
+                reason = "发生未知错误：" + line;
+                return true;
+            }
+
+            reason = null;
+            return false;
+        }
+
+
+
+        private void btnStartUpZip_Click(object sender, EventArgs e)
         {
             if (string.IsNullOrEmpty(ExistsWinRar()))
             {
@@ -279,6 +371,12 @@ namespace U
 
             string sPath = txtPath.Text.Trim();
 
+            if (string.IsNullOrWhiteSpace(sPath))
+            {
+                MessageBox.Show("请选择源目录。");
+                return ;
+            }
+
             Thread st = new Thread(() =>
             {
                 lbStateInfo.Invoke(dlgDelegateShowInfo, "文件读入中...");
@@ -286,11 +384,188 @@ namespace U
                 ScanFiles(sPath);
                 //int icount = lstData.Count; // lvDataList.Items.Count;
                 lbStateInfo.Invoke(dlgDelegateShowInfo,
-                    string.Format("读入完毕,总共:{0}，Zip包:{1}，出错:{2}", iReadCount, ZipCount, ZipErrCount));
+                    string.Format("读入完毕,总共:{0}，Zip包:{1}，出错:{2} {3}", iReadCount, ZipCount, ZipErrCount, ZipErrCount>0?"出错文件请查看Info日志":""));
                 //if (icount > 0)
                 //    this.Invoke(dlgDelegateChuangeBtnState);
             });
             st.Start();
         }
+
+        private void groupBox1_Enter(object sender, EventArgs e)
+        {
+
+        }
+        private string outputDir;
+        private void btnStartFind_Click(object sender, EventArgs e)
+        {
+            string sPath = txtPath.Text.Trim();
+
+
+            if (string.IsNullOrWhiteSpace(sPath))
+            {
+                MessageBox.Show("请选择源目录。");
+                return;
+            }
+
+
+            dlgDelegateAddItem = FindFile;
+            dlgDelegateShowInfo = ShowScanInfo;
+
+            string sHz = txtHzs.Text.Trim();
+            if (string.IsNullOrWhiteSpace(sHz))
+            {
+                MessageBox.Show("请输入后缀，多个用逗号分开。");
+                return;
+            }
+            allowedExtensions = sHz.Split(',');
+
+            // 获取当前程序目录
+            string currentDir = AppDomain.CurrentDomain.BaseDirectory;
+            outputDir = Path.Combine(currentDir, "output");
+
+            // 创建output目录（如果不存在）
+            if (!Directory.Exists(outputDir))
+            {
+                Directory.CreateDirectory(outputDir);
+            }
+            iReadCount = 0;
+            ZipCount = 0;
+
+            Thread st = new Thread(() =>
+            {
+                lbStateInfo.Invoke(dlgDelegateShowInfo, "文件读入中...");
+                ScanFiles(sPath); 
+                lbStateInfo.Invoke(dlgDelegateShowInfo,string.Format("读入完毕,总共:{0}个文件，找到{1}个文件", iReadCount,ZipCount));
+                 
+            });
+            st.Start();
+        }
+        // 要检查的扩展名列表
+        string[] allowedExtensions = { ".rar", ".zip", ".png" };
+        private void FindFile(string sFilePath)
+        {
+            try
+            {
+
+                //iReadCount++;
+                // 获取文件扩展名并统一转为小写
+                string ext = Path.GetExtension(sFilePath)?.ToLower();
+
+               
+
+                // 判断是否为指定类型的文件
+                if (allowedExtensions.Contains(ext))
+                {
+                    ZipCount++;
+
+                    // 获取文件名和扩展名
+                    string fileName = Path.GetFileNameWithoutExtension(sFilePath);
+                    string extension = Path.GetExtension(sFilePath);
+
+                    // 构建初始目标路径
+                    string destFilePath = Path.Combine(outputDir, fileName + extension);
+                    int copyIndex = 1;
+
+                    // 如果目标文件已存在，自动重命名
+                    while (File.Exists(destFilePath))
+                    {
+                        string newFileName = $"{fileName}_rename_({copyIndex}){extension}";
+                        destFilePath = Path.Combine(outputDir, newFileName);
+                        copyIndex++;
+                    }
+
+                    // 复制文件到目标路径
+                    File.Copy(sFilePath, destFilePath);
+
+                }
+            }
+            catch (Exception ex)
+            {
+                ZipErrCount++;
+                lbStateInfo.Invoke(dlgDelegateShowInfo, $"提取文件:{sFilePath} 错误:{ex.Message}");
+                XS.Core.Log.ErrorLog.ErrorFormat("提取文件:{0} 错误:{1}", sFilePath, ex.Message);
+            }
+
+        }
+
+        private void btnDelSames_Click(object sender, EventArgs e)
+        {
+
+            DialogResult dr = MessageBox.Show("将根据文件MD5值判断是否相同，确定要删除重复文件？", "提示", MessageBoxButtons.OKCancel, MessageBoxIcon.Question);
+            if (dr != DialogResult.OK)
+            {
+                return;
+            }
+            string sPath = txtPath.Text.Trim();
+
+
+            if (string.IsNullOrWhiteSpace(sPath))
+            {
+                MessageBox.Show("请选择源目录。");
+                return;
+            }
+
+
+            dlgDelegateAddItem = DelSameFile;
+            dlgDelegateShowInfo = ShowScanInfo;
+
+            fileMd5Dict.Clear();
+            iReadCount = 0;
+            ZipCount = 0;
+            Thread st = new Thread(() =>
+            {
+                lbStateInfo.Invoke(dlgDelegateShowInfo, "文件读入中...");
+                ScanFiles(sPath);
+                lbStateInfo.Invoke(dlgDelegateShowInfo, string.Format("读入完毕,总共:{0}个文件，删除{1}个文件", iReadCount, ZipCount));
+
+            });
+            st.Start();
+        }
+
+        // 声明一个用于存储 MD5 值的字典（建议放在类中作为成员变量）
+        private Dictionary<string, string> fileMd5Dict = new Dictionary<string, string>();
+
+        private void DelSameFile(string sFilePath)
+        {
+            try
+            {
+               
+                // 计算文件的 MD5 值
+                string md5Hash = GetFileMd5(sFilePath);
+
+                if (fileMd5Dict.ContainsKey(md5Hash))
+                {
+                    // 如果已经存在相同的 MD5，说明是重复文件，删除
+                    File.Delete(sFilePath);
+                    ZipCount++;
+                    lbStateInfo.Invoke(dlgDelegateShowInfo, $"删除重复文件: {sFilePath}");
+
+                    //XS.Core.Log.InfoLog.InfoFormat("删除重复文件: {0}", sFilePath);
+                }
+                else
+                {
+                    // 否则加入字典中
+                    fileMd5Dict[md5Hash] = sFilePath;
+                }
+            }
+            catch (Exception ex)
+            {
+                ZipErrCount++;
+                lbStateInfo.Invoke(dlgDelegateShowInfo, $"删除文件:{sFilePath} 错误:{ex.Message}");
+                XS.Core.Log.ErrorLog.ErrorFormat("删除文件:{0} 错误:{1}", sFilePath, ex.Message);
+            }
+        }
+
+        // 计算文件 MD5 的辅助方法
+        private string GetFileMd5(string filePath)
+        {
+            using (var md5 = System.Security.Cryptography.MD5.Create())
+            using (var stream = File.OpenRead(filePath))
+            {
+                var hash = md5.ComputeHash(stream);
+                return BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+            }
+        }
+
     }
 }
